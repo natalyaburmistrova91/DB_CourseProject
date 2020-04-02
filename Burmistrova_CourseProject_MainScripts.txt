@@ -1,0 +1,433 @@
+-- Составить общее текстовое описание БД и решаемых ею задач;
+-- минимальное количество таблиц - 10; done
+-- скрипты создания структуры БД (с первичными ключами, индексами, внешними ключами); done
+-- создать ERDiagram для БД; done
+-- скрипты наполнения БД данными; done
+-- скрипты характерных выборок (включающие группировки, JOIN'ы, вложенные таблицы); done
+-- представления (минимум 2); done
+-- хранимые процедуры / триггеры; done
+
+
+CREATE DATABASE bank_base;
+
+USE bank_base;
+
+SHOW TABLES;
+
+-- Создаем таблицы
+CREATE TABLE client_types (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,  
+  name VARCHAR(100) NOT NULL
+);
+
+-- DROP TABLE clients;
+CREATE TABLE clients (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,  
+  client_type INT UNSIGNED NOT NULL,
+  created_at DATETIME DEFAULT NOW()
+ );
+
+DROP TABLE organizations_profiles;
+CREATE TABLE IF NOT EXISTS organizations_profiles (
+  client_id INT UNSIGNED NOT NULL PRIMARY KEY, 
+  short_name VARCHAR(20) NOT NULL,
+  full_name VARCHAR(50) NOT NULL,
+  INN INT UNSIGNED NOT NULL,
+  KPP INT UNSIGNED NOT NULL,
+  legal_adress VARCHAR(100) NOT NULL,
+  actual_adress VARCHAR(100) NOT NULL,
+  phone INT UNSIGNED NOT NULL,
+  updated_at DATETIME DEFAULT NOW() ON UPDATE NOW()
+);
+
+DROP TABLE phyzicals_profiles;
+CREATE TABLE IF NOT EXISTS phyzicals_profiles (
+  client_id INT UNSIGNED NOT NULL PRIMARY KEY, 
+  last_name VARCHAR(100) NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  middle_name VARCHAR(100) NOT NULL,
+  gender CHAR(1) NOT NULL,
+  birthday DATE,
+  email VARCHAR(50) NOT NULL,
+  phone INT UNSIGNED NOT NULL,
+  updated_at DATETIME DEFAULT NOW() ON UPDATE NOW()
+);
+
+ -- DROP TABLE entrepreneurs_profiles;
+CREATE TABLE IF NOT EXISTS entrepreneurs_profiles (
+  client_id INT UNSIGNED NOT NULL PRIMARY KEY, 
+  INN INT UNSIGNED NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  middle_name VARCHAR(100) NOT NULL,
+  gender CHAR(1) NOT NULL,
+  birthday DATE,
+  email VARCHAR(50) NOT NULL,
+  phone INT UNSIGNED NOT NULL,
+  updated_at DATETIME DEFAULT NOW() ON UPDATE NOW()
+);
+
+-- DROP TABLE official_documents;
+CREATE TABLE official_documents (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  client_id INT UNSIGNED NOT NULL,
+  document_type_id INT UNSIGNED NOT NULL,
+  document_number VARCHAR(20) NOT NULL,
+  date_of_getting DATE NOT NULL,
+  date_of_ending DATE NOT NULL,
+  updated_at DATETIME DEFAULT NOW() ON UPDATE NOW()
+);
+
+-- DROP TABLE document_types;
+CREATE TABLE document_types (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,  
+  name VARCHAR(60) NOT NULL
+);
+
+DROP TABLE accounts;
+CREATE TABLE accounts (
+  client_id INT UNSIGNED NOT NULL PRIMARY KEY,  
+  RUB_account INT UNSIGNED NOT NULL,
+  RUB_amount INT NOT NULL,
+  EUR_account INT UNSIGNED,
+  EUR_amount INT,
+  USD_account INT UNSIGNED,
+  USD_amount INT,
+  updated_at DATETIME DEFAULT NOW() ON UPDATE NOW()
+);
+
+-- DROP TABLE messages;
+CREATE TABLE messages (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,  
+  from_client_id INT UNSIGNED NOT NULL,
+  to_client_id INT UNSIGNED NOT NULL,
+  body TEXT,
+  created_at DATETIME DEFAULT NOW(),
+  updated_at DATETIME DEFAULT NOW() ON UPDATE NOW()
+);
+
+-- DROP TABLE payments;
+CREATE TABLE payments (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,  
+  client_id INT UNSIGNED NOT NULL,
+  payment_type INT UNSIGNED NOT NULL,
+  target_id INT UNSIGNED,
+  amount INT NOT NULL,  
+  created_at DATETIME DEFAULT NOW(),
+  updated_at DATETIME DEFAULT NOW() ON UPDATE NOW()
+);
+
+-- DROP TABLE payment_types;
+CREATE TABLE payment_types (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,  
+  name VARCHAR(50) NOT NULL
+);
+
+DROP TABLE services;
+CREATE TABLE services (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,  
+  client_id INT UNSIGNED NOT NULL,
+  service_type INT UNSIGNED NOT NULL,
+  created_at DATETIME DEFAULT NOW(),
+  updated_at DATETIME DEFAULT NOW() ON UPDATE NOW()
+);
+
+-- DROP TABLE service_types;
+CREATE TABLE service_types (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,  
+  name VARCHAR(30) NOT NULL
+);
+
+-- Создаем внешние ключи
+-- ALTER TABLE clients DROP FOREIGN KEY clients_client_type_fk;
+ALTER TABLE clients
+  ADD CONSTRAINT clients_client_type_fk 
+    FOREIGN KEY (client_type) REFERENCES client_types(id);
+
+-- ALTER TABLE accounts DROP FOREIGN KEY accounts_client_id_fk;  
+ALTER TABLE accounts
+  ADD CONSTRAINT accounts_client_id_fk 
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+     ON DELETE CASCADE;   
+    
+-- ALTER TABLE organizations_profiles DROP FOREIGN KEY organizations_profiles_client_id_fk; 
+ALTER TABLE organizations_profiles
+  ADD CONSTRAINT organizations_profiles_client_id_fk 
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+      ON DELETE CASCADE;
+     
+-- ALTER TABLE phyzicals_profiles DROP FOREIGN KEY phyzicals_profiles_client_id_fk; 
+ALTER TABLE phyzicals_profiles
+  ADD CONSTRAINT phyzicals_profiles_client_id_fk 
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+      ON DELETE CASCADE;
+
+-- ALTER TABLE entrepreneurs_profiles DROP FOREIGN KEY entrepreneurs_profiles_client_id_fk;
+ALTER TABLE entrepreneurs_profiles
+  ADD CONSTRAINT entrepreneurs_profiles_client_id_fk 
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+      ON DELETE CASCADE;
+     
+-- ALTER TABLE official_documents DROP FOREIGN KEY official_documents_client_id_fk;
+-- ALTER TABLE official_documents DROP FOREIGN KEY official_documents_document_type_id_fk;
+ALTER TABLE official_documents
+  ADD CONSTRAINT official_documents_client_id_fk 
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+      ON DELETE CASCADE,
+  ADD CONSTRAINT official_documents_document_type_id_fk 
+    FOREIGN KEY (document_type_id) REFERENCES document_types(id);
+
+-- ALTER TABLE messages DROP FOREIGN KEY messages_from_client_id_fk;
+-- ALTER TABLE messages DROP FOREIGN KEY messages_to_client_id_fk;
+ALTER TABLE messages
+  ADD CONSTRAINT messages_from_client_id_fk 
+    FOREIGN KEY (from_client_id) REFERENCES clients(id),
+  ADD CONSTRAINT messages_to_client_id_fk 
+    FOREIGN KEY (to_client_id) REFERENCES clients(id);  
+    
+-- ALTER TABLE payments DROP FOREIGN KEY payments_payment_type_fk;
+-- ALTER TABLE payments DROP FOREIGN KEY payments_client_id_fk;
+ALTER TABLE payments
+  ADD CONSTRAINT payments_payment_type_fk 
+    FOREIGN KEY (payment_type) REFERENCES payment_types(id),
+  ADD CONSTRAINT payments_client_id_fk 
+    FOREIGN KEY (client_id) REFERENCES clients(id);  
+    
+-- ALTER TABLE services DROP FOREIGN KEY services_service_type_fk;
+-- ALTER TABLE services DROP FOREIGN KEY services_client_id_fk;
+ALTER TABLE services
+  ADD CONSTRAINT services_service_type_fk 
+    FOREIGN KEY (service_type) REFERENCES service_types(id),
+  ADD CONSTRAINT services_client_id_fk 
+    FOREIGN KEY (client_id) REFERENCES clients(id);  
+    
+   
+-- Добавляем индексы:
+
+-- Для проверки состояния рублевого расчетного счета
+CREATE UNIQUE INDEX accounts_client_id_RUB_ammount_uq ON accounts(client_id, RUB_amount);
+-- Для проверки истории платежей
+CREATE UNIQUE INDEX payments_client_id_amount_uq ON payments(client_id, amount);
+-- Для просмотра какие услуги были подключены
+CREATE UNIQUE INDEX services_client_id_service_type_uq ON services(client_id, service_type);
+-- Для просмотра сообщений
+CREATE UNIQUE INDEX messages_from_client_id_to_client_id_uq ON messages(from_client_id, to_client_id);
+
+
+
+-- Cкрипты характерных выборок (включающие группировки, JOIN'ы, вложенные таблицы)
+
+-- Вложенные таблицы
+
+-- Определение количества клиентов по типу
+SELECT 
+  COUNT(id) AS total, 
+  (SELECT name FROM client_types ct WHERE c.client_type = ct.id) AS client_type 
+  FROM clients c 
+  GROUP BY client_type
+  ORDER BY total;
+
+-- Определение сколько рублевых денежных средств находится на счетах у клиентов в разбивке по типу клиентов
+SELECT (SELECT (SELECT name 
+    FROM client_types ct 
+    WHERE ct.id = c.client_type) 
+    client_type                       
+    FROM clients c 
+    WHERE c.id = a.client_id) AS client_type,
+    SUM(RUB_amount) AS Total_RUB
+	FROM accounts a
+	GROUP BY client_type WITH ROLLUP
+    ORDER BY Total_RUB;
+
+ -- Типы документов, которые предоставляли определенные типы пользователей
+  SELECT 
+  (SELECT (SELECT name FROM client_types cp WHERE c.client_type = cp.id) client_type FROM clients c WHERE od.client_id = c.id) AS client_type,
+  (SELECT name FROM document_types dt WHERE od.document_type_id = dt.id) AS document_type
+  FROM official_documents od
+  GROUP BY client_type, document_type
+  ORDER BY client_type, document_type;
+ 
+
+-- Сколько всего документов было предоставлено 
+SELECT
+  (SELECT (SELECT name FROM client_types cp WHERE c.client_type = cp.id) client_type FROM clients c WHERE od.client_id = c.id) AS client_type,
+  COUNT((SELECT name FROM document_types dt WHERE od.document_type_id = dt.id)) AS document_type
+  FROM official_documents od
+  GROUP BY client_type WITH ROLLUP;   
+   
+-- JOIN'ы
+
+-- История сообщений (sender и receiver взяты из двух таблиц entrepreneurs_profiles и phyzicals_profiles )  
+SELECT s.id, s.sender, r.receiver
+FROM (SELECT id,
+  CONCAT(pp.first_name, ' ', pp.last_name) AS sender
+FROM
+  messages AS m
+JOIN
+  phyzicals_profiles AS pp
+   	ON m.from_client_id = pp.client_id
+UNION
+SELECT id,
+  CONCAT(ep.first_name, ' ', ep.last_name) AS sender
+FROM
+  messages AS m
+JOIN
+  entrepreneurs_profiles AS ep
+   	ON m.from_client_id = ep.client_id) AS s
+JOIN
+(SELECT id,
+  CONCAT(pp.first_name, ' ', pp.last_name) AS receiver
+FROM
+  messages AS m
+JOIN
+  phyzicals_profiles AS pp
+   	ON m.to_client_id = pp.client_id
+UNION
+SELECT id,
+  CONCAT(ep.first_name, ' ', ep.last_name) AS receiver
+FROM
+  messages AS m
+JOIN
+  entrepreneurs_profiles AS ep
+   	ON m.to_client_id = ep.client_id) AS r
+   	ON s.id = r.id
+   ORDER BY s.id;
+
+ -- Представления
+ 
+ -- Создаем представление, описывающее подключенные услуги пользователям
+ 
+CREATE VIEW total_service_describer (id, name, main_name, client_type, service_type) AS
+SELECT 
+  s.client_id AS id,
+  pp.first_name AS name,
+  pp.last_name AS main_name,
+  (SELECT 
+  (SELECT name FROM client_types ct WHERE ct.id = c.client_type)  
+  FROM clients c WHERE s.client_id = c.id) AS client_type,
+  (SELECT name FROM service_types st WHERE s.service_type = st.id) AS service_type
+  FROM services s
+  JOIN phyzicals_profiles AS pp
+    ON s.client_id = pp.client_id
+UNION
+SELECT 
+  s.client_id,
+  ep.first_name,
+  ep.last_name,
+  (SELECT 
+  (SELECT name FROM client_types ct WHERE ct.id = c.client_type)  
+  FROM clients c WHERE s.client_id = c.id) AS client_type,
+  (SELECT name FROM service_types st WHERE s.service_type = st.id) AS service_type
+  FROM services s
+  JOIN entrepreneurs_profiles AS ep
+    ON s.client_id = ep.client_id
+UNION
+SELECT 
+  s.client_id,
+  op.short_name,
+  op.full_name,
+  (SELECT 
+  (SELECT name FROM client_types ct WHERE ct.id = c.client_type)  
+  FROM clients c WHERE s.client_id = c.id) AS client_type,
+  (SELECT name FROM service_types st WHERE s.service_type = st.id) AS service_type
+  FROM services s
+  JOIN organizations_profiles AS op
+    ON s.client_id = op.client_id
+  ORDER BY id;
+ 
+ SELECT * FROM total_service_describer;
+
+-- Создаем представление, описывающее клиентов
+
+CREATE VIEW total_client_table (id, name, main_name, client_type) AS 
+SELECT 
+client_id AS id,
+first_name AS name,
+last_name AS main_name,
+(SELECT (SELECT name FROM client_types WHERE clients.client_type = client_types.id) FROM clients WHERE pp.client_id = clients.id) as client_type
+FROM phyzicals_profiles as pp
+UNION
+SELECT 
+client_id, first_name, last_name, (SELECT (SELECT name FROM client_types WHERE clients.client_type = client_types.id) FROM clients WHERE ep.client_id = clients.id)
+FROM entrepreneurs_profiles as ep
+UNION
+SELECT client_id, short_name, full_name,(SELECT (SELECT name FROM client_types WHERE clients.client_type = client_types.id) FROM clients WHERE op.client_id = clients.id) 
+FROM organizations_profiles AS op
+ORDER BY id;
+
+SELECT * FROM total_client_table;
+
+-- Хранимые процедуры
+
+DELIMITER //
+
+CREATE PROCEDURE new_client_creation()
+BEGIN
+  SELECT "Step 1. Введи пользователя в таблицу clients" AS step_1;
+  SELECT "Step 2. Введи пользователю данные о расчетном счете в таблицу accounts" AS Step_2;
+  SELECT "Step 3. Введи пользователя в таблицу profiles в зависимости от типа" AS Step_3;
+  SELECT "Step 4. Добавь предоставленные документы" AS Step_4;
+END //
+
+CREATE PROCEDURE updater_bank_accounts()
+BEGIN
+ SELECT @total_rub:= SUM(RUB_amount) FROM accounts;
+ SELECT @total_EUR:=SUM(EUR_amount) FROM accounts;
+ SELECT @total_USD:=SUM(USD_amount) FROM accounts;
+END //
+
+DELIMITER ;
+
+CALL new_client_creation()
+CALL updater_bank_accounts();
+
+-- Добавляем триггеры
+
+-- Для начала создадим переменные, отражающие баланс на расчетном счете банка
+
+SELECT @total_rub:= @total_rub + 2;
+
+-- Создадим триггер, который при изменении на расчетном счете проверяет, чтобы информаци.
+
+DELIMITER //
+
+CREATE TRIGGER account_value_checker_update BEFORE UPDATE ON accounts
+FOR EACH ROW
+BEGIN
+  IF ISNULL(NEW.RUB_account) OR ISNULL(NEW.RUB_amount) THEN
+	SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'values mistake';
+  ELSE
+    IF (NEW.EUR_account IS NULL AND NEW.EUR_amount IS NOT NULL) OR (NEW.EUR_account IS NOT NULL AND NEW.EUR_amount IS NULL) THEN 
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'values mistake';
+    END IF;
+    IF (NEW.USD_account IS NULL AND NEW.USD_amount IS NOT NULL) OR (NEW.USD_account IS NOT NULL AND NEW.USD_amount IS NULL) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'values mistake';
+    END IF;
+ END IF;
+END//
+
+
+CREATE TRIGGER account_value_checker_insert BEFORE INSERT ON accounts
+FOR EACH ROW
+BEGIN
+  IF ISNULL(NEW.RUB_account) OR ISNULL(NEW.RUB_amount) THEN
+	SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'values mistake';
+  ELSE
+    IF (NEW.EUR_account IS NULL AND NEW.EUR_amount IS NOT NULL) OR (NEW.EUR_account IS NOT NULL AND NEW.EUR_amount IS NULL) THEN 
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'values mistake';
+    END IF;
+    IF (NEW.USD_account IS NULL AND NEW.USD_amount IS NOT NULL) OR (NEW.USD_account IS NOT NULL AND NEW.USD_amount IS NULL) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'values mistake';
+    END IF;
+ END IF;
+END//
+
+DELIMITER ;
+-- проверяем триггеры
+INSERT INTO `accounts` VALUES (101,NULL,'197806','21618','26514','34976','46897','2019-04-21 10:05:56');
+INSERT INTO `accounts` VALUES (101,'197806',NULL,'21618','26514','34976','46897','2019-04-21 10:05:56');
+INSERT INTO `accounts` VALUES (101,'197806','197806',NULL,'26514','34976','46897','2019-04-21 10:05:56');
+INSERT INTO `accounts` VALUES (101,'197806','197806','26514',NULL,'34976','46897','2019-04-21 10:05:56');
+-- на каждом выдает ошибку 'values mistake'
+INSERT INTO `accounts` VALUES (101,'197806','197806',NULL,NULL,'34976','46897','2019-04-21 10:05:56');
+-- а так не выдает ошибку 'values mistake'
